@@ -1,0 +1,7 @@
+FreeRunner Rotate
+Author:  Rui Miguel Silva Seabra <rms@1407.org>
+License: GPLv3+.
+Description: Inspired upon Chris Ball <cjb@laptop.org>'s previous
+	     incarnation of rotate, this is a rewritten-from-scratch
+	     new software that does some simple actions according to
+	     the position detected by the FreeRunner's accelerometers.
