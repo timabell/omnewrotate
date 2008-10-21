@@ -1,0 +1,4 @@
+Known Issues:
+	* reading from the accelerometer hangs after X time/reads
+	* some heuristic values may need finetunning (specially when
+	  laying around, turned up)

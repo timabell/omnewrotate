@@ -82,6 +82,10 @@ int read_packet(int from, struct input_event *x, struct input_event *y, struct i
 	packet_memcpy_result = memcpy(z, packet+2*packet_size, packet_size);
 	packet_memcpy_result = memcpy(syn, packet+3*packet_size, packet_size);
 	free(packet);
+	if(syn->type == EV_SYN)
+		return(1);
+	else
+		return(0);
 }
 
 int very_different_than_previously(struct input_event event_x, struct input_event event_y, struct input_event event_z) {
@@ -106,6 +110,10 @@ void reset_current_position(struct input_event event_x, struct input_event event
 	current_z.value=event_z.value;
 }
 
+ushort neighbour(int value, int target, int neighbour) {
+        return ( target-abs(neighbour) < value && value <= target+abs(neighbour) );
+}
+
 void swap_orientation(struct input_event event_x, struct input_event event_y, struct input_event event_z) {
 	__s32 x = event_x.value;
 	__s32 y = event_y.value;
@@ -124,25 +132,27 @@ void swap_orientation(struct input_event event_x, struct input_event event_y, st
 	if(very_different_than_previously(event_x, event_y, event_z)) {
 		if(!debug) printf("Postion (%d,%d,%d): ",x,y,z);
 
-		if( -200 < y < 200 ) {
+		if( z > x && z > y && neighbour(x, 0, 20) && neighbour(z,1000,200) ) {
 			printf(" horizontal");
+			r_to=RR_Rotate_0;
+			do_rotate=1;
 		}
-		if( y < -300 && -300 < x < 300 ) {
+		if( y < x && y < z && neighbour(y,-1000,200) ) {
 			printf(" vertical");
 			r_to=RR_Rotate_0;
 			do_rotate=1;
 		}
-		if( -100 < y < 100 && 700 < x ) {
+		if( x > y && x > z && neighbour(x,1000,500) ) {
 			printf(" right");
 			r_to=RR_Rotate_90;
 			do_rotate=1;
 		}
-		if( y > 600 && -400 < x < 400 ) {
+		if( y > x && y > z && neighbour(y,1000,200) ) {
 			printf(" upsideDown");
 			r_to=RR_Rotate_180;
 			do_rotate=1;
 		}
-		if( 800 < x && -300 < y < 300 ) {
+		if( x < y && x < z && neighbour(x,-1000,500) ) {
 			printf(" left");
 			r_to=RR_Rotate_270;
 			do_rotate=1;
@@ -164,6 +174,7 @@ void swap_orientation(struct input_event event_x, struct input_event event_y, st
 			config = XRRGetScreenInfo(display, rootWindow);
 			current_size = XRRConfigCurrentConfiguration (config, &r);
 			XRRSetScreenConfig(display, config, rootWindow, current_size, r_to, CurrentTime);
+			sleep(1);
 		}
 	}
 }
@@ -199,28 +210,29 @@ int main (int argc, char ** argv) {
 
 	while(1) {
 		printf("Reading packet...");
-		read_packet(file, &x, &y, &z, &syn);
-		printf(" read.\n");
-		if(!screen_locked()) {
-			swap_orientation(x, y, z);
-
-			/* reset current position */
-			reset_current_position(x,y,z);
-		}
-
-		if(debug) {
-			/*
-			printf("Data:\tTime\t\t\t\tType\tCode\tValue\n");
-			strftime(time,20,"%Y-%m-%d %H:%M:%S",localtime(&x.time.tv_sec));
-			printf("\t%s\t\t%d\t%d\t%d\n", time, x.type, x.code, x.value);
-			strftime(time,20,"%Y-%m-%d %H:%M:%S",localtime(&y.time.tv_sec));
-			printf("\t%s\t\t%d\t%d\t%d\n", time, y.type, y.code, y.value);
-			strftime(time,20,"%Y-%m-%d %H:%M:%S",localtime(&z.time.tv_sec));
-			printf("\t%s\t\t%d\t%d\t%d\n", time, z.type, z.code, z.value);
-			strftime(time,20,"%Y-%m-%d %H:%M:%S",localtime(&syn.time.tv_sec));
-			printf("\t%s\t\t%d\t%d\t%d\n", time, syn.type, syn.code, syn.value);
-			*/
-			printf("(x,y,z) = (%d,%d,%d)\n", x.value, y.value, z.value);
+		if(read_packet(file, &x, &y, &z, &syn)) {
+			printf(" read.\n");
+			if(!screen_locked()) {
+				swap_orientation(x, y, z);
+	
+				/* reset current position */
+				reset_current_position(x,y,z);
+			}
+	
+			if(debug) {
+				/*
+				printf("Data:\tTime\t\t\t\tType\tCode\tValue\n");
+				strftime(time,20,"%Y-%m-%d %H:%M:%S",localtime(&x.time.tv_sec));
+				printf("\t%s\t\t%d\t%d\t%d\n", time, x.type, x.code, x.value);
+				strftime(time,20,"%Y-%m-%d %H:%M:%S",localtime(&y.time.tv_sec));
+				printf("\t%s\t\t%d\t%d\t%d\n", time, y.type, y.code, y.value);
+				strftime(time,20,"%Y-%m-%d %H:%M:%S",localtime(&z.time.tv_sec));
+				printf("\t%s\t\t%d\t%d\t%d\n", time, z.type, z.code, z.value);
+				strftime(time,20,"%Y-%m-%d %H:%M:%S",localtime(&syn.time.tv_sec));
+				printf("\t%s\t\t%d\t%d\t%d\n", time, syn.type, syn.code, syn.value);
+				*/
+				printf("(x,y,z) = (%d,%d,%d)\n", x.value, y.value, z.value);
+			}
 		}
 	}
 
