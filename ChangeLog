@@ -1,3 +1,5 @@
+2008-10-14 - 0.3.0
+	* dims while rotating and doesn't rotate if dimmed, sleeping for 5s
 2008-09-22 - 0.2.1
 	* more heuristic fixes (hopefully really fix when laying around, and
 	  turned up)

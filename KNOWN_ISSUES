@@ -1,2 +1,7 @@
 Known Issues:
+	* I'm not getting updated results if I only open
+	  /sys/class/backlight/pcf50633-bl/actual_brightness once
+	  which means I need to open it on every cycle.
+	  Since it's in memory and not an actual file, wast should
+	  not be too much
 	* some heuristic values may need finetunning

@@ -53,12 +53,16 @@ struct input_event {
 #define LONG_TIME 0
 
 #define EVENT_PATH "/dev/input/event3"
+#define GET_BRIGHTNESS_PATH "/sys/class/backlight/pcf50633-bl/actual_brightness"
+#define SET_BRIGHTNESS_PATH "/sys/class/backlight/pcf50633-bl/brightness"
 
 struct input_event current_x, current_y, current_z;
 
 int current_pos=0;
 
 int file = -1;
+int set_brightness_file = -1;
+int get_brightness_file = -1;
 
 void* packet = NULL;
 
@@ -95,6 +99,7 @@ int read_packet(int from, struct input_event *x, struct input_event *y, struct i
 	free(packet);
 	packet = NULL;
 	signal(SIGALRM, SIG_DFL);
+	alarm(0);
 	if(syn->type == EV_SYN)
 		return(1);
 	else
@@ -178,6 +183,8 @@ void swap_orientation(int pos) {
 	XRRScreenConfiguration * config;
 	int current_size=0;
 	int screen = -1;
+	char current_brightness[3]="63\n";
+	char brightness_off[2]="0\n";
 	ushort do_rotate=0;
 
 	if(pos != current_pos) {
@@ -194,11 +201,50 @@ void swap_orientation(int pos) {
 		}
 
 		if(do_rotate) {
+			if(set_brightness_file >= 0) {
+				lseek(get_brightness_file, 0, SEEK_SET);
+				read(get_brightness_file, &current_brightness, 2);
+				lseek(set_brightness_file, 0, SEEK_SET);
+				write(set_brightness_file, &brightness_off, 2);
+				usleep(500000);
+			}
+
 			if (debug) printf("ROTATING!\n");
 			config = XRRGetScreenInfo(display, rootWindow);
 			current_size = XRRConfigCurrentConfiguration (config, &r);
 			XRRSetScreenConfig(display, config, rootWindow, current_size, r_to, CurrentTime);
+			usleep(500000);
+
+			if(set_brightness_file >= 0) {
+				lseek(set_brightness_file, 0, SEEK_SET);
+				write(set_brightness_file, &current_brightness, 3);
+			}
 		}
+	}
+}
+
+int screen_dimmed() {
+	char current_brightness[3]="63\n";
+	short currently_bright=0;
+
+	get_brightness_file = open(GET_BRIGHTNESS_PATH, O_RDONLY);
+	if (get_brightness_file < 0) {
+		fprintf(stderr, "Can't open '%s': %s\n",GET_BRIGHTNESS_PATH,strerror(errno));
+		fprintf(stderr, "No brightness check enabled\n");
+		return(0);
+	} else {
+		/* read the current brightness, and dim only if it's bright */
+		lseek(get_brightness_file, 0, SEEK_SET);
+		read(get_brightness_file, &current_brightness, 2);
+		currently_bright=atoi(current_brightness);
+
+		close(get_brightness_file);
+
+		if(debug) printf("Dimmed level: %d\n",currently_bright);
+
+		if(currently_bright>0) return(0);
+		else return(1);
+
 	}
 }
 
@@ -213,44 +259,50 @@ void packet_loop() {
 	int pos1,pos2;
 
 	while(1) { WHILE:
-		if(debug) printf("\nReading 1st set of packets...");
-		if(read_packet(file, &x, &y, &z, &syn)) {
-			if(debug) printf("read accel(x,y,z) = (%d,%d,%d)\n", x.value, y.value, z.value);
-			pos1=guess_position(x, y, z);
-		} else {
-			if(debug) printf(" fail!!!!!\n");
-			goto WHILE;
-		}
+		if(!screen_locked() && !screen_dimmed()) {
 
-		if(debug) printf("\nReading 2nd set of packets...");
-		if(read_packet(file, &x, &y, &z, &syn)) {
-			if(debug) printf("read accel(x,y,z) = (%d,%d,%d)\n", x.value, y.value, z.value);
-			pos2=guess_position(x, y, z);
-		} else {
-			if(debug) printf(" fail!!!!!\n");
-			goto WHILE;
-		}
-
-		if(!screen_locked() && pos1 == pos2) {
-			swap_orientation(pos1);
-			/* reset current position */
-			reset_current_position(pos1,x,y,z);
-			usleep(100000);
-		}
+			if(debug) printf("\nReading 1st set of packets...");
+			if(read_packet(file, &x, &y, &z, &syn)) {
+				if(debug) printf("read accel(x,y,z) = (%d,%d,%d)\n", x.value, y.value, z.value);
+				pos1=guess_position(x, y, z);
+			} else {
+				if(debug) printf(" fail!!!!!\n");
+				goto WHILE;
+			}
 	
-		if(debug) {
-			/*
-			printf("Data:\tTime\t\t\t\tType\tCode\tValue\n");
-			strftime(time,20,"%Y-%m-%d %H:%M:%S",localtime(&x.time.tv_sec));
-			printf("\t%s\t\t%d\t%d\t%d\n", time, x.type, x.code, x.value);
-			strftime(time,20,"%Y-%m-%d %H:%M:%S",localtime(&y.time.tv_sec));
-			printf("\t%s\t\t%d\t%d\t%d\n", time, y.type, y.code, y.value);
-			strftime(time,20,"%Y-%m-%d %H:%M:%S",localtime(&z.time.tv_sec));
-			printf("\t%s\t\t%d\t%d\t%d\n", time, z.type, z.code, z.value);
-			strftime(time,20,"%Y-%m-%d %H:%M:%S",localtime(&syn.time.tv_sec));
-			printf("\t%s\t\t%d\t%d\t%d\n", time, syn.type, syn.code, syn.value);
-			printf("(x,y,z) = (%d,%d,%d)\n", x.value, y.value, z.value);
-			*/
+			if(debug) printf("\nReading 2nd set of packets...");
+			if(read_packet(file, &x, &y, &z, &syn)) {
+				if(debug) printf("read accel(x,y,z) = (%d,%d,%d)\n", x.value, y.value, z.value);
+				pos2=guess_position(x, y, z);
+			} else {
+				if(debug) printf(" fail!!!!!\n");
+				goto WHILE;
+			}
+	
+			if(pos1 == pos2) {
+				swap_orientation(pos1);
+				/* reset current position */
+				reset_current_position(pos1,x,y,z);
+				usleep(100000);
+			}
+	
+			if(debug) {
+				/*
+				printf("Data:\tTime\t\t\t\tType\tCode\tValue\n");
+				strftime(time,20,"%Y-%m-%d %H:%M:%S",localtime(&x.time.tv_sec));
+				printf("\t%s\t\t%d\t%d\t%d\n", time, x.type, x.code, x.value);
+				strftime(time,20,"%Y-%m-%d %H:%M:%S",localtime(&y.time.tv_sec));
+				printf("\t%s\t\t%d\t%d\t%d\n", time, y.type, y.code, y.value);
+				strftime(time,20,"%Y-%m-%d %H:%M:%S",localtime(&z.time.tv_sec));
+				printf("\t%s\t\t%d\t%d\t%d\n", time, z.type, z.code, z.value);
+				strftime(time,20,"%Y-%m-%d %H:%M:%S",localtime(&syn.time.tv_sec));
+				printf("\t%s\t\t%d\t%d\t%d\n", time, syn.type, syn.code, syn.value);
+				printf("(x,y,z) = (%d,%d,%d)\n", x.value, y.value, z.value);
+				*/
+			}
+		} else {
+			if(debug) printf("Screen locked or dimmed, not rotating...\n");
+			sleep(5);
 		}
 	}
 }
@@ -270,6 +322,12 @@ int main (int argc, char ** argv) {
 	if (file < 0) {
 		fprintf(stderr, "Can't open '%s': %s\n",EVENT_PATH,strerror(errno));
 		exit(1);
+	}
+
+	set_brightness_file = open(SET_BRIGHTNESS_PATH, O_RDWR);
+	if (set_brightness_file < 0) {
+		fprintf(stderr, "Can't open '%s': %s\n",SET_BRIGHTNESS_PATH,strerror(errno));
+		fprintf(stderr, "No brightness control enabled\n");
 	}
 
 	if(argc > 1) debug=1;
