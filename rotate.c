@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <signal.h>
 #include <unistd.h>
 #include <time.h>
 #include <errno.h>
@@ -57,12 +58,20 @@ struct input_event current_x, current_y, current_z;
 
 int current_pos=0;
 
+int file = -1;
+
+void* packet = NULL;
+
+void catch_alarm(int var);
+
 int read_packet(int from, struct input_event *x, struct input_event *y, struct input_event *z, struct input_event *syn)  {
-	void* packet = NULL;
 	void* packet_memcpy_result = NULL;
 	int packet_size=sizeof(struct input_event);
 	int size_of_packet=4*packet_size;
 	int bytes_read = 0;
+
+	signal(SIGALRM, catch_alarm);
+	alarm(5);
 
 	packet = malloc(size_of_packet);
 
@@ -84,6 +93,8 @@ int read_packet(int from, struct input_event *x, struct input_event *y, struct i
 	packet_memcpy_result = memcpy(z, packet+2*packet_size, packet_size);
 	packet_memcpy_result = memcpy(syn, packet+3*packet_size, packet_size);
 	free(packet);
+	packet = NULL;
+	signal(SIGALRM, SIG_DFL);
 	if(syn->type == EV_SYN)
 		return(1);
 	else
@@ -137,7 +148,7 @@ int guess_position(struct input_event event_x, struct input_event event_y, struc
 		if(debug) printf(" right");
 		return_val=90;
 	}
-	if( y > x && y > z && neighbour(y,1000,200) ) {
+	if( y > x && y > z && neighbour(y,1000,200) && z != 0 ) {
 		if(debug) printf(" upsideDown");
 		return_val=180;
 	}
@@ -196,30 +207,10 @@ int screen_locked() {
 	return(0);
 }
 
-int main (int argc, char ** argv) {
-	int file = -1;
+void packet_loop() {
 	char * time=(char*)malloc(20);
 	struct input_event syn, x, y, z;
 	int pos1,pos2;
-
-	file = open(EVENT_PATH, O_RDONLY);
-	if (file < 0) {
-		fprintf(stderr, "Can't open '%s': %s\n",EVENT_PATH,strerror(errno));
-		exit(1);
-	}
-
-	if(argc > 1) debug=1;
-
-	/* initialize current position */
-	read_packet(file, &current_x, &current_y, &current_z, &syn);
-
-	display = XOpenDisplay(":0");
-	if (display == NULL) {
-		fprintf (stderr, "Can't open display %s\n", XDisplayName(":0"));
-		exit(1);
-	}
-
-	
 
 	while(1) { WHILE:
 		if(debug) printf("\nReading 1st set of packets...");
@@ -244,6 +235,7 @@ int main (int argc, char ** argv) {
 			swap_orientation(pos1);
 			/* reset current position */
 			reset_current_position(pos1,x,y,z);
+			usleep(100000);
 		}
 	
 		if(debug) {
@@ -261,5 +253,35 @@ int main (int argc, char ** argv) {
 			*/
 		}
 	}
+}
 
+void catch_alarm(int var) {
+	if(packet) {
+		free(packet);
+		packet = NULL;
+	}
+	packet_loop();
+}
+
+int main (int argc, char ** argv) {
+	struct input_event syn, x, y, z;
+
+	file = open(EVENT_PATH, O_RDONLY);
+	if (file < 0) {
+		fprintf(stderr, "Can't open '%s': %s\n",EVENT_PATH,strerror(errno));
+		exit(1);
+	}
+
+	if(argc > 1) debug=1;
+
+	/* initialize current position */
+	read_packet(file, &current_x, &current_y, &current_z, &syn);
+
+	display = XOpenDisplay(":0");
+	if (display == NULL) {
+		fprintf (stderr, "Can't open display %s\n", XDisplayName(":0"));
+		exit(1);
+	}
+
+	packet_loop();
 }
