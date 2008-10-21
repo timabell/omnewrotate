@@ -1,3 +1,6 @@
+2008-09-22 - 0.2.0
+	* greatly improves heuristics
+	* fixed heuristics when laying around, and turned up
 2008-09-21 - 0.1.1 - First brown paper bag release
 	* improves heuristics
 2008-09-21 - 0.1.0 - First release.

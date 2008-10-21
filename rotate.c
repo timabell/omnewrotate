@@ -55,6 +55,8 @@ struct input_event {
 
 struct input_event current_x, current_y, current_z;
 
+int current_pos=0;
+
 int read_packet(int from, struct input_event *x, struct input_event *y, struct input_event *z, struct input_event *syn)  {
 	void* packet = NULL;
 	void* packet_memcpy_result = NULL;
@@ -102,22 +104,64 @@ int very_different_than_previously(struct input_event event_x, struct input_even
 	else
 		return(0);
 }
-void reset_current_position(struct input_event event_x, struct input_event event_y, struct input_event event_z) {
+void reset_current_position(int pos, struct input_event event_x, struct input_event event_y, struct input_event event_z) {
 	current_x.value=event_x.time.tv_sec = event_x.time.tv_sec;
 
 	current_x.value=event_x.value;
 	current_y.value=event_y.value;
 	current_z.value=event_z.value;
+	current_pos=pos;
 }
 
 ushort neighbour(int value, int target, int neighbour) {
         return ( target-abs(neighbour) < value && value <= target+abs(neighbour) );
 }
 
-void swap_orientation(struct input_event event_x, struct input_event event_y, struct input_event event_z) {
+int guess_position(struct input_event event_x, struct input_event event_y, struct input_event event_z) {
 	__s32 x = event_x.value;
 	__s32 y = event_y.value;
 	__s32 z = event_z.value;
+	ushort return_val=-1;
+
+	if( z > x && z > y && neighbour(x, 0, 20) && neighbour(z,1000,200) ) {
+		if(debug) printf(" face up");
+	}
+	if( z < x && z < y && neighbour(z,-1000,200) ) {
+		if(debug) printf(" face down");
+	}
+	if( y < x && y < z && neighbour(y,-1000,200) ) {
+		if(debug) printf(" vertical");
+		return_val=0;
+	}
+	if( x > y && x > z && neighbour(x,1000,500) ) {
+		if(debug) printf(" right");
+		return_val=90;
+	}
+	if( y > x && y > z && neighbour(y,1000,200) ) {
+		if(debug) printf(" upsideDown");
+		return_val=180;
+	}
+	if( x < y && x < z && neighbour(x,-1000,500) ) {
+		if(debug) printf(" left");
+		return_val=270;
+	}
+
+	if( z < 0 ) {
+		if(debug) printf(" turnedDown");
+		/* objective: make the phone silent (for meetings, for example) */
+	}
+	if( 0 <= z ) {
+		if(debug) printf(" turnedUp");
+		/* objective: if the phone is silent because of us, return to the previous profile */
+	}
+
+	if(debug) printf("\n");
+
+	return(return_val);
+}
+
+void swap_orientation(int pos) {
+	ushort return_val=-1;
 
 	Rotation r_to,r;
 	XRRScreenConfiguration * config;
@@ -125,56 +169,24 @@ void swap_orientation(struct input_event event_x, struct input_event event_y, st
 	int screen = -1;
 	ushort do_rotate=0;
 
-	screen = DefaultScreen(display);
-	rootWindow = RootWindow(display, screen);
-	XRRRotations(display, screen, &r);
+	if(pos != current_pos) {
+		screen = DefaultScreen(display);
+		rootWindow = RootWindow(display, screen);
+		XRRRotations(display, screen, &r);
 
-	if(very_different_than_previously(event_x, event_y, event_z)) {
-		if(!debug) printf("Postion (%d,%d,%d): ",x,y,z);
-
-		if( z > x && z > y && neighbour(x, 0, 20) && neighbour(z,1000,200) ) {
-			printf(" horizontal");
-			r_to=RR_Rotate_0;
-			do_rotate=1;
+		switch(pos) {
+			case 0:		r_to=RR_Rotate_0	; do_rotate=1 ; break;
+			case 90:	r_to=RR_Rotate_90	; do_rotate=1 ; break;
+			case 180:	r_to=RR_Rotate_180	; do_rotate=1 ; break;
+			case 270:	r_to=RR_Rotate_270	; do_rotate=1 ; break;
+			default: break;
 		}
-		if( y < x && y < z && neighbour(y,-1000,200) ) {
-			printf(" vertical");
-			r_to=RR_Rotate_0;
-			do_rotate=1;
-		}
-		if( x > y && x > z && neighbour(x,1000,500) ) {
-			printf(" right");
-			r_to=RR_Rotate_90;
-			do_rotate=1;
-		}
-		if( y > x && y > z && neighbour(y,1000,200) ) {
-			printf(" upsideDown");
-			r_to=RR_Rotate_180;
-			do_rotate=1;
-		}
-		if( x < y && x < z && neighbour(x,-1000,500) ) {
-			printf(" left");
-			r_to=RR_Rotate_270;
-			do_rotate=1;
-		}
-
-		if( z < 0 ) {
-			printf(" turnedDown");
-			/* objective: make the phone silent (for meetings, for example) */
-		}
-		if( 0 <= z ) {
-			printf(" turnedUp");
-			/* objective: if the phone is silent because of us, return to the previous profile */
-		}
-
-		printf("\n");
 
 		if(do_rotate) {
-			printf("ROTATING!\n");
+			if (debug) printf("ROTATING!\n");
 			config = XRRGetScreenInfo(display, rootWindow);
 			current_size = XRRConfigCurrentConfiguration (config, &r);
 			XRRSetScreenConfig(display, config, rootWindow, current_size, r_to, CurrentTime);
-			sleep(1);
 		}
 	}
 }
@@ -188,6 +200,7 @@ int main (int argc, char ** argv) {
 	int file = -1;
 	char * time=(char*)malloc(20);
 	struct input_event syn, x, y, z;
+	int pos1,pos2;
 
 	file = open(EVENT_PATH, O_RDONLY);
 	if (file < 0) {
@@ -208,31 +221,44 @@ int main (int argc, char ** argv) {
 
 	
 
-	while(1) {
-		printf("Reading packet...");
+	while(1) { WHILE:
+		if(debug) printf("\nReading 1st set of packets...");
 		if(read_packet(file, &x, &y, &z, &syn)) {
-			printf(" read.\n");
-			if(!screen_locked()) {
-				swap_orientation(x, y, z);
+			if(debug) printf("read accel(x,y,z) = (%d,%d,%d)\n", x.value, y.value, z.value);
+			pos1=guess_position(x, y, z);
+		} else {
+			if(debug) printf(" fail!!!!!\n");
+			goto WHILE;
+		}
+
+		if(debug) printf("\nReading 2nd set of packets...");
+		if(read_packet(file, &x, &y, &z, &syn)) {
+			if(debug) printf("read accel(x,y,z) = (%d,%d,%d)\n", x.value, y.value, z.value);
+			pos2=guess_position(x, y, z);
+		} else {
+			if(debug) printf(" fail!!!!!\n");
+			goto WHILE;
+		}
+
+		if(!screen_locked() && pos1 == pos2) {
+			swap_orientation(pos1);
+			/* reset current position */
+			reset_current_position(pos1,x,y,z);
+		}
 	
-				/* reset current position */
-				reset_current_position(x,y,z);
-			}
-	
-			if(debug) {
-				/*
-				printf("Data:\tTime\t\t\t\tType\tCode\tValue\n");
-				strftime(time,20,"%Y-%m-%d %H:%M:%S",localtime(&x.time.tv_sec));
-				printf("\t%s\t\t%d\t%d\t%d\n", time, x.type, x.code, x.value);
-				strftime(time,20,"%Y-%m-%d %H:%M:%S",localtime(&y.time.tv_sec));
-				printf("\t%s\t\t%d\t%d\t%d\n", time, y.type, y.code, y.value);
-				strftime(time,20,"%Y-%m-%d %H:%M:%S",localtime(&z.time.tv_sec));
-				printf("\t%s\t\t%d\t%d\t%d\n", time, z.type, z.code, z.value);
-				strftime(time,20,"%Y-%m-%d %H:%M:%S",localtime(&syn.time.tv_sec));
-				printf("\t%s\t\t%d\t%d\t%d\n", time, syn.type, syn.code, syn.value);
-				*/
-				printf("(x,y,z) = (%d,%d,%d)\n", x.value, y.value, z.value);
-			}
+		if(debug) {
+			/*
+			printf("Data:\tTime\t\t\t\tType\tCode\tValue\n");
+			strftime(time,20,"%Y-%m-%d %H:%M:%S",localtime(&x.time.tv_sec));
+			printf("\t%s\t\t%d\t%d\t%d\n", time, x.type, x.code, x.value);
+			strftime(time,20,"%Y-%m-%d %H:%M:%S",localtime(&y.time.tv_sec));
+			printf("\t%s\t\t%d\t%d\t%d\n", time, y.type, y.code, y.value);
+			strftime(time,20,"%Y-%m-%d %H:%M:%S",localtime(&z.time.tv_sec));
+			printf("\t%s\t\t%d\t%d\t%d\n", time, z.type, z.code, z.value);
+			strftime(time,20,"%Y-%m-%d %H:%M:%S",localtime(&syn.time.tv_sec));
+			printf("\t%s\t\t%d\t%d\t%d\n", time, syn.type, syn.code, syn.value);
+			printf("(x,y,z) = (%d,%d,%d)\n", x.value, y.value, z.value);
+			*/
 		}
 	}
 
