@@ -1,14 +1,35 @@
+2008-11-19 - 0.5.0 - Lazy edition
+	* uses a second thread for reading the accellerometer packets
+	* drops Fabien's changes (not that they weren't good, just not
+	  needed any more)
+	* adds flags (look at display_help() or ./rotate -h)
+	* drops packets with 0 value coordinates (I got bogus packets
+	  like that so I decided to drop them, if you feel you get good
+	  packets with 0 value, you can use '-0' as an argument to take
+	  them in account).
+	* top -d 1 -p <PID> shows 0.0% CPU usage (of omnewrotate) even
+	  during rotation
+	* seems to waste a little too much memory (some stuff could be
+	  done with one number and bitwise operations instead of several
+	  numbers, I wonder how much that will improve and if it's worth
+	  the effort...)
+	* only output outside of debug mode are real errors
+
 2008-10-14 - 0.3.0
 	* dims while rotating and doesn't rotate if dimmed, sleeping for 5s
+
 2008-09-22 - 0.2.1
 	* more heuristic fixes (hopefully really fix when laying around, and
 	  turned up)
 	* workaround with alarm() for the accelerometer read-hang problem
 	* sleeping for 100ms seems to get cpu usage quite low (0% to 0.9%)
+
 2008-09-22 - 0.2.0
 	* greatly improves heuristics
 	* fixed heuristics when laying around, and turned up
+
 2008-09-21 - 0.1.1 - First brown paper bag release
 	* improves heuristics
+
 2008-09-21 - 0.1.0 - First release.
 	* makes some rotations

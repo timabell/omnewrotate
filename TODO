@@ -1,4 +1,3 @@
 TODO
-	* don't rotate when screen is locked
-	* change profile to silent/meeting when phone is turned down
-	  and revert when it is turned back up
+	* don't rotate when screen is locked or dimmed
+	* fix brightness effects when whoever locks the brightness file (frameworkd?) is running 
