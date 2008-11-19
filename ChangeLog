@@ -1,6 +1,6 @@
 2008-11-19 - 0.5.0 - Lazy edition
 	* uses a second thread for reading the accellerometer packets
-	* drops Fabien's changes (not that they weren't good, just not
+	* drops Fabian's changes (not that they weren't good, just not
 	  needed any more)
 	* adds flags (look at display_help() or ./rotate -h)
 	* drops packets with 0 value coordinates (I got bogus packets
