@@ -1,5 +1,6 @@
 /*
  * Copyright © 2008 Rui Miguel Silva Seabra <rms@1407.org>
+ * Copyright © 2008 Fabian Henze <hoacha@quantentunnel.de>
  *
  * Inspired upon Chris Ball's rotate, this is a totally new rewrite.
  *
@@ -19,23 +20,23 @@
  *
  */
 
-#include <stdarg.h>
+#include <signal.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <time.h>
 #include <errno.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <fcntl.h>
 #include <linux/input.h>
 #include <X11/Xlib.h>
 #include <X11/extensions/Xrandr.h>
 
-static Display  *display;
-static Window   rootWindow;
-ushort debug = 0;
+void packet_loop();
+int read_packet(int from, int *x, int *y, int *z);
+int get_position(int x, int y, int z);
+void rotate(int pos);
+void catch_alarm(int var);
+void set_options(char **args);
 
 /* we're reading this kind of events:
 struct input_event {
@@ -44,138 +45,351 @@ struct input_event {
     __u16 type;
     __s32 value;
 };
-
 */
+
+#define UPRIGHT 0
+#define RIGHT 1
+#define UPSIDEDOWN 2
+#define LEFT 3
+#define EVENT_PATH "/dev/input/event3"
+
+int current_x, current_y, current_z;
+int current_pos = -1;
+int file = -1;
+
+static Display *display;
+static Window rootWindow;
+ushort debug = 0;
+ushort change_brightness = 0;
+
 
 #define BIG_DIFFERENCE 400
 /* this ----v idea doesn't seem to be working right, for later investigation */
 #define LONG_TIME 0
 
 #define EVENT_PATH "/dev/input/event3"
+#define GET_BRIGHTNESS_PATH "/sys/class/backlight/pcf50633-bl/actual_brightness"
+#define SET_BRIGHTNESS_PATH "/sys/class/backlight/pcf50633-bl/brightness"
 
-struct input_event current_a, current_b, current_c;
 
-int read_packet(int from, struct input_event *x, struct input_event *y, struct input_event *z, struct input_event *syn)  {
-	void* packet = NULL;
-	void* packet_memcpy_result = NULL;
-	int packet_size=sizeof(struct input_event);
-	int size_of_packet=4*packet_size;
-	int bytes_read = 0;
 
-	packet = malloc(size_of_packet);
+int set_brightness_file = -1;
+int get_brightness_file = -1;
 
-	if(!packet) {
+void *packet = NULL;
+
+
+int main(int argc, char **argv)
+{
+    int x, y, z;
+
+    file = open(EVENT_PATH, O_RDONLY);
+    if (file < 0) {
+	fprintf(stderr, "Can't open '%s': %s\n", EVENT_PATH,
+		strerror(errno));
+	exit(1);
+    }
+
+    set_options(argv);
+
+    if (change_brightness) {
+	set_brightness_file = open(SET_BRIGHTNESS_PATH, O_RDWR);
+	if (set_brightness_file < 0) {
+	    fprintf(stderr, "Can't open '%s': %s\n", SET_BRIGHTNESS_PATH,
+		    strerror(errno));
+	    fprintf(stderr, "No brightness control enabled\n");
+	}
+    }
+
+
+    /* initialize current position */
+    while (!read_packet(file, &x, &y, &z));
+    current_pos = get_position(x, y, z);
+
+    display = XOpenDisplay(":0");
+    if (display == NULL) {
+	fprintf(stderr, "Can't open display %s\n", XDisplayName(":0"));
+	exit(1);
+    }
+
+    packet_loop();
+}
+
+void set_options(char **args)
+{
+    char *arg = (char *) *args;
+    int i = 1;
+
+    printf("OPTIONS:\n");
+    while (arg != NULL) {
+	if (0 == strncmp(arg, "debug", 5)) {
+	    printf("RUNNING IN DEBUG MODE\n");
+	    debug = 1;
+	} else if (0 == strncmp(arg, "brightness", 10)) {
+	    if (debug)
+		printf("USING BRIGHT CONTROL\n");
+	    change_brightness = 1;
+	}
+	arg = (char *) *(args + i++);
+    }
+}
+
+void packet_loop()
+{
+    int x, y, z;
+    int pos, last_pos = -1;
+    char *orientation, *current_orientation;
+
+    while (1) {
+	    while (!read_packet(file, &x, &y, &z));
+		printf("v(x,y,z)=(% 5d,% 5d,% 5d)\n",x,y,z);
+    }
+}
+
+int read_packet(int from, int *x, int *y, int *z) {
+    static struct input_event event_x, event_y, event_z, event_syn;
+    void *packet_memcpy_result = NULL;
+    int packet_size = sizeof(struct input_event);
+    int size_of_packet = 4 * packet_size;
+    int bytes_read = 0;
+
+    signal(SIGALRM, catch_alarm);
+    alarm(5);
+
+    packet = malloc(size_of_packet);
+
+    if (!packet) {
 		fprintf(stderr, "malloc failed\n");
 		exit(1);
-	}
+    }
 
-	bytes_read = read (from, packet, size_of_packet);
+    bytes_read = read(from, packet, size_of_packet);
 
-	if (bytes_read < packet_size) {
+    if (bytes_read < packet_size) {
 		fprintf(stderr, "fread failed\n");
 		exit(1);
+    }
+
+    /* obtain the full packet */
+    packet_memcpy_result = memcpy(&event_x,   packet,                   packet_size);
+    packet_memcpy_result = memcpy(&event_y,   packet +     packet_size, packet_size);
+    packet_memcpy_result = memcpy(&event_z,   packet + 2 * packet_size, packet_size);
+    packet_memcpy_result = memcpy(&event_syn, packet + 3 * packet_size, packet_size);
+
+    *x = event_x.value;
+    *y = event_y.value;
+    *z = event_z.value;
+
+    free(packet);
+
+    packet = NULL;
+    signal(SIGALRM, SIG_DFL);
+    alarm(0);
+
+    if (event_syn.type == EV_SYN && *x != 0 && *y != 0 && *z != 0) {
+		printf("Good packet: ");
+		return (1);
+	} else {
+		printf("Bad packet!\n");
+		return (0);
+	}
+}
+
+ushort neighbour(int value, int target, int neighbour)
+{
+    return (target - abs(neighbour) < value
+	    && value <= target + abs(neighbour));
+}
+
+int get_position(int x, int y, int z)
+{
+
+    const int total_accel = x ^ 2 + y ^ 2 + z ^ 2;
+
+    if ((900 <= abs(z)) && (abs(z) < 1100)) {
+	if (debug)
+	    printf(" low angle\n");
+	return (-1);
+    }
+
+    /* if ((900000 > total_accel) || (total_accel > 1200000)) {
+       if(debug) printf(" shaking around\n");
+       return(-2);
+       } */
+
+    /* if (900000 > total_accel) {
+       if(debug) printf(" too little shaking\n");
+       return(-2);
+       } */
+
+    if (total_accel > 1200000) {
+	if (debug)
+	    printf(" too much shaking\n");
+	return (-2);
+    }
+
+    switch (current_pos) {
+    case UPRIGHT:
+	if (y < 0 && abs(x) < -2 * y)
+	    return (UPRIGHT);
+	else if (y > 0 && abs(x) < y)
+	    return (UPSIDEDOWN);
+	else if (x > 0)
+	    return (RIGHT);
+	else if (x < 0)
+	    return (LEFT);
+	break;
+    case RIGHT:
+	if (x > 0 && abs(y) < 2 * x)
+	    return (RIGHT);
+	else if (x < 0 && abs(y) < -x)
+	    return (LEFT);
+	else if (y > 0)
+	    return (UPSIDEDOWN);
+	else if (y < 0)
+	    return (UPRIGHT);
+	break;
+    case LEFT:
+	if (x < 0 && abs(y) < -2 * x)
+	    return (LEFT);
+	else if (x > 0 && abs(y) < x)
+	    return (RIGHT);
+	else if (y > 0)
+	    return (UPSIDEDOWN);
+	else if (y < 0)
+	    return (UPRIGHT);
+	break;
+    case UPSIDEDOWN:
+	if (y > 0 && abs(x) < 2 * y)
+	    return (UPSIDEDOWN);
+	else if (y < 0 && abs(x) < -y)
+	    return (UPRIGHT);
+	else if (x > 0)
+	    return (RIGHT);
+	else if (x < 0)
+	    return (LEFT);
+	break;
+    default:
+	if (y < 0 && abs(x) < -y)
+	    return (UPRIGHT);
+	else if (y > 0 && abs(x) < y)
+	    return (UPSIDEDOWN);
+	else if (x > 0)
+	    return (RIGHT);
+	else if (x < 0)
+	    return (LEFT);
+	break;
+    }
+
+    return (-1);
+}
+
+void rotate(int pos)
+{
+    ushort return_val = -1;
+
+    Rotation r_to, r;
+    XRRScreenConfiguration *config;
+    int current_size = 0;
+    int screen = -1;
+    char current_brightness[3] = "63\n";
+    char brightness_off[2] = "0\n";
+    ushort do_rotate = 0;
+
+    screen = DefaultScreen(display);
+    rootWindow = RootWindow(display, screen);
+    XRRRotations(display, screen, &r);
+
+    switch (pos) {
+    case UPRIGHT:
+	r_to = RR_Rotate_0;
+	do_rotate = 1;
+	break;
+    case RIGHT:
+	r_to = RR_Rotate_90;
+	do_rotate = 1;
+	break;
+    case UPSIDEDOWN:
+	r_to = RR_Rotate_180;
+	do_rotate = 1;
+	break;
+    case LEFT:
+	r_to = RR_Rotate_270;
+	do_rotate = 1;
+	break;
+    default:
+	break;
+    }
+
+    if (do_rotate) {
+	if (change_brightness && set_brightness_file >= 0) {
+	    lseek(get_brightness_file, 0, SEEK_SET);
+	    read(get_brightness_file, &current_brightness, 2);
+	    lseek(set_brightness_file, 0, SEEK_SET);
+	    write(set_brightness_file, &brightness_off, 2);
+	    usleep(500000);
 	}
 
-	/* obtain the full packet */
-	packet_memcpy_result = memcpy(x, packet, packet_size);
-	packet_memcpy_result = memcpy(y, packet+packet_size, packet_size);
-	packet_memcpy_result = memcpy(z, packet+2*packet_size, packet_size);
-	packet_memcpy_result = memcpy(syn, packet+3*packet_size, packet_size);
+	if (debug)
+	    printf("ROTATING!\n");
+	config = XRRGetScreenInfo(display, rootWindow);
+	current_size = XRRConfigCurrentConfiguration(config, &r);
+	XRRSetScreenConfig(display, config, rootWindow, current_size, r_to,
+			   CurrentTime);
+	usleep(500000);
+
+	if (change_brightness && set_brightness_file >= 0) {
+	    lseek(set_brightness_file, 0, SEEK_SET);
+	    write(set_brightness_file, &current_brightness, 3);
+	}
+	current_pos = pos;
+    }
+}
+
+int screen_dimmed()
+{
+    char current_brightness[3] = "63\n";
+    short currently_bright = 0;
+
+    if (!change_brightness)
+	return (0);
+
+    get_brightness_file = open(GET_BRIGHTNESS_PATH, O_RDONLY);
+    if (get_brightness_file < 0) {
+	fprintf(stderr, "Can't open '%s': %s\n", GET_BRIGHTNESS_PATH,
+		strerror(errno));
+	fprintf(stderr, "No brightness check enabled\n");
+	return (0);
+    } else {
+	/* read the current brightness, and dim only if it's bright */
+	lseek(get_brightness_file, 0, SEEK_SET);
+	read(get_brightness_file, &current_brightness, 2);
+	currently_bright = atoi(current_brightness);
+
+	close(get_brightness_file);
+
+	if (debug)
+	    printf("Dimmed level: %d\n", currently_bright);
+
+	if (currently_bright > 0)
+	    return (0);
+	else
+	    return (1);
+
+    }
+}
+
+int screen_locked()
+{
+    /* shouldn't rotate if screen is locked, waste of energy */
+    return (0);
+}
+
+void catch_alarm(int var)
+{
+    if (packet) {
 	free(packet);
-	if(syn->type == EV_SYN)
-		return(1);
-	else
-		return(0);
-}
-
-int very_different_than_previously(struct input_event event_a, struct input_event event_b, struct input_event event_c) {
-/*
-	if(	(abs(current_x.time.tv_sec - event_x.time.tv_sec) > LONG_TIME) &&
-*/
-	if(
-		(
-		 (abs(current_a.value - event_a.value) >= BIG_DIFFERENCE) ||
-		 (abs(current_b.value - event_b.value) >= BIG_DIFFERENCE) ||
-		 (abs(current_c.value - event_c.value) >= BIG_DIFFERENCE)
-		)
-	  ) return(1);
-	else
-		return(0);
-}
-void reset_current_position(struct input_event event_a, struct input_event event_b, struct input_event event_c) {
-	current_a.value=event_a.time.tv_sec = event_a.time.tv_sec;
-
-	current_a.value=event_a.value;
-	current_b.value=event_b.value;
-	current_c.value=event_c.value;
-}
-
-ushort neighbour(int value, int target, int neighbour) {
-	return ( target-abs(neighbour) < value && value <= target+abs(neighbour) );
-}
-
-void swap_orientation(struct input_event event_a, struct input_event event_b, struct input_event event_c) {
-	__s32 a = event_a.value;
-	__s32 b = event_b.value;
-	__s32 c = event_c.value;
-
-	//if(very_different_than_previously(event_a, event_b, event_c)) {
-		//printf("(a,b,c) = (%d,%d,%d) == ", a, b, c);
-
-		printf("Types: a(%d), b(%d), c(%d)\n", event_a.type, event_b.type, event_c.type);
-		printf("Codes: a(%d), b(%d), c(%d)\n", event_a.code, event_b.code, event_c.code);
-		printf("Value: a(%d), b(%d), c(%d)\n", event_a.value, event_b.value, event_c.value);
-
-		if(c > a && c > b && neighbour(a, 0, 20) && neighbour(c,1000,200)) {
-			printf("horizontal");
-		} else if(b < a && b < c && neighbour(b,-1000,200)) {
-			printf("vertical straight");
-		} else if(b > a && b > c && neighbour(b,1000,200)) {
-			printf("vertical upside down");
-		} else if(a > b && a > c && neighbour(a,1000,500)) {
-			printf("right");
-		} else if(a < b && a < c && neighbour(a,-1000,500)) {
-			printf("left");
-		}
-
-	printf("\n");
-	//}
-
-}
-
-int screen_locked() {
-	/* shouldn't rotate if screen is locked, waste of energy */
-	return(0);
-}
-
-int main (int argc, char ** argv) {
-	int file = -1;
-	char * time=(char*)malloc(20);
-	struct input_event syn, a, b, c;
-
-	file = open(EVENT_PATH, O_RDONLY);
-	if (file < 0) {
-		fprintf(stderr, "Can't open '%s': %s\n",EVENT_PATH,strerror(errno));
-		exit(1);
-	}
-
-	if(argc > 1) debug=1;
-
-	/* initialize current position */
-	read_packet(file, &current_a, &current_b, &current_c, &syn);
-
-	display = XOpenDisplay(":0");
-	if (display == NULL) {
-		fprintf (stderr, "Can't open display %s\n", XDisplayName(":0"));
-		exit(1);
-	}
-
-	
-	while(1) {
-		//printf("Reading packet...");
-		if(read_packet(file, &a, &b, &c, &syn)) {
-			swap_orientation(a,b,c);
-		} else printf("Skipped a packet\n");
-	}
-
+	packet = NULL;
+    }
+    packet_loop();
 }
