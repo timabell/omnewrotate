@@ -5,3 +5,14 @@ Description: Inspired upon Chris Ball <cjb@laptop.org>'s previous
 	     incarnation of rotate, this is a rewritten-from-scratch
 	     new software that does some simple actions according to
 	     the position detected by the FreeRunner's accelerometers.
+
+
+######################
+# How to make it run #
+######################
+
+While there isn't nothing else, do the following from SSH access:
+ 
+    echo '/home/root/rotate&' > /etc/X11/Xsession.d/89rotate
+    chmod a+rx /etc/X11/Xsession.d/89rotate
+    /etc/init.d/xserver-nodm restart
