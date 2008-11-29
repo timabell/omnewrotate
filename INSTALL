@@ -1,0 +1,5 @@
+While there isn't nothing else, do the following from SSH access:
+
+    echo '/home/root/rotate&' > /etc/X11/Xsession.d/89rotate
+    chmod a+rx /etc/X11/Xsession.d/89rotate
+    /etc/init.d/xserver-nodm restart
