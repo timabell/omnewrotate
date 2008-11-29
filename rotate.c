@@ -1,4 +1,4 @@
-/*
+/* vim:tabstop=4
  * Copyright © 2008 Rui Miguel Silva Seabra <rms@1407.org>
  *
  * Inspired upon Chris Ball's rotate, this is a totally new rewrite.
@@ -30,6 +30,7 @@
 #include <X11/Xlib.h>
 #include <X11/extensions/Xrandr.h>
 #include <pthread.h>
+#include <dbus/dbus.h>
 
 void *packet_reading_thread(void *);
 int define_position(void);
@@ -77,6 +78,7 @@ static Window rootWindow;
 ushort debug = 0;
 ushort skip_zero = 1;
 ushort change_brightness = 0;
+ushort use_dbus = 1;
 
 
 #define BIG_DIFFERENCE 400
@@ -101,6 +103,10 @@ int main(int argc, char **argv)
 	int pos=0;
 	static char options[] = "bd0hv";
 	int option;
+
+	DBusError err;
+	DBusConnection* conn;
+	int ret;
 
 	while((option = getopt(argc,argv,options)) != -1)
 	{
@@ -145,7 +151,16 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-	if (change_brightness) {
+	dbus_error_init(&err);
+	conn = dbus_bus_get(DBUS_BUS_SESSION, &err);
+	if (dbus_error_is_set(&err))
+	{
+		fprintf(stderr, "Connection Error (%s), so not using dbus\n", err.message);
+		dbus_error_free(&err);
+	}
+	if (NULL == conn) use_dbus=0;
+
+	if (change_brightness && !use_dbus) {
 		set_brightness_file = open(SET_BRIGHTNESS_PATH, O_RDWR);
 		get_brightness_file = open(GET_BRIGHTNESS_PATH, O_RDWR);
 
@@ -252,10 +267,17 @@ void do_rotation(void)
 	if (change_brightness)
 	{
 		if(debug) printf("Dimming screen for nifty effect\n");
-		lseek(get_brightness_file, 0, SEEK_SET);
-		read(get_brightness_file, &current_brightness, 2);
-		lseek(set_brightness_file, 0, SEEK_SET);
-		write(set_brightness_file, &brightness_off, 2);
+
+		if(use_dbus)
+		{
+		}
+		else
+		{
+			lseek(get_brightness_file, 0, SEEK_SET);
+			read(get_brightness_file, &current_brightness, 2);
+			lseek(set_brightness_file, 0, SEEK_SET);
+			write(set_brightness_file, &brightness_off, 2);
+		}
 		usleep(500000);
 	}
 
@@ -392,3 +414,4 @@ int read_packet()
 	else
 		return (0);
 }
+
