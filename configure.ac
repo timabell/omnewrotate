@@ -17,6 +17,17 @@ PKG_CHECK_MODULES(XRANDR, xrandr, [],
 PKG_CHECK_MODULES(FRAMEWORKD_GLIB, libframeworkd-glib, [],
 		[AC_MSG_FAILURE([libframeworkd-glib not found])]
 		)
+
+PTHREAD_CFLAGS="-pthread"
+PTHREAD_LIBS="-lpthread"
+AC_SUBST(PTHREAD_CFLAGS)
+AC_SUBST(PTHREAD_LIBS)
+
+BINDIR=`eval echo $bindir`
+AC_SUBST([BINDIR])
+DATADIR=`eval echo $datadir`
+AC_SUBST([DATADIR])
+
 dnl ==============================================
 dnl DBUS
 dnl ==============================================
@@ -34,5 +45,7 @@ AC_SUBST(DBUS_GLIB_BIN)
 
 AC_OUTPUT([
 Makefile
+data/Makefile
+data/omnewrotate.desktop
 src/Makefile
 ])

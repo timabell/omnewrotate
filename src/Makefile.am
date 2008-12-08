@@ -1,14 +1,16 @@
-INTAINERCLEANFILES = Makefile.in
+NTAINERCLEANFILES = Makefile.in
 
 AM_CPPFLAGS = -DPKGDATADIR=\"$(pkgdatadir)\" \
-		-pthread \
-                $(XRANDR_CFLAGS) \
-                $(FRAMEWORKD_GLIB_CFLAGS) \
+                @PTHREAD_CFLAGS@ \
+                @XRANDR_CFLAGS@ \
+                @FRAMEWORKD_GLIB_CFLAGS@ \
                 -Wall
 
-AM_LDFLAGS = @XRANDR_LIBS@ @FRAMEWORKD_GLIB_LIBS@
+AM_LDFLAGS =	@PTHREAD_LIBS@ \
+		@XRANDR_LIBS@ \
+		@FRAMEWORKD_GLIB_LIBS@
 
-bin_PROGRAMS=omnewrotate
+bin_PROGRAMS = omnewrotate
 
 omnewrotate_SOURCES = \
 	omnewrotate.c

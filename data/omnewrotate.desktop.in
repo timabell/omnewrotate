@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=Rotate
+GenericName=OM NewRotate
+Comment=OpenMoko NewRotate swaps screen orientation according to it's physical orientation
+Exec=@BINDIR@/omnewrotate
+Icon=@DATADIR@/pixmaps/omnewrotate.png
+Terminal=false
+Type=Application
+Categories=Office;
+MimeType=text/x-vcard;
+StartupNotify=false

@@ -1,4 +1,4 @@
-SUBDIRS = src
+SUBDIRS = data src
 
 MAINTAINERCLEANFILES = \
 	Makefile.in Makefile aclocal.m4 config.guess \
