@@ -11,12 +11,12 @@ AC_PROG_CC
 AC_STDC_HEADERS
 AC_PROG_LIBTOOL
 
-PKG_CHECK_MODULES(DBUS, xrandr)
-PKG_CHECK_MODULES(FRAMEWORKD_GLIB,
-          libframeworkd-glib,
-		  [],
-		  [AC_MSG_FAILURE([libframeworkd-glib not found])]
-		 )
+PKG_CHECK_MODULES(XRANDR, xrandr, [],
+		[AC_MSG_FAILURE([xrandr not found])]
+		)
+PKG_CHECK_MODULES(FRAMEWORKD_GLIB, libframeworkd-glib, [],
+		[AC_MSG_FAILURE([libframeworkd-glib not found])]
+		)
 dnl ==============================================
 dnl DBUS
 dnl ==============================================
