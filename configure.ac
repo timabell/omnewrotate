@@ -17,10 +17,6 @@ PKG_CHECK_MODULES(FRAMEWORKD_GLIB,
 		  [],
 		  [AC_MSG_FAILURE([libframeworkd-glib not found])]
 		 )
-PKG_CHECK_MODULES(FRAMEWORKD_PHONEGUI, libframeworkd-phonegui)
-                  		
-
-
 dnl ==============================================
 dnl DBUS
 dnl ==============================================
