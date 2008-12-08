@@ -33,7 +33,8 @@
 #include <dbus/dbus.h>
 
 void *packet_reading_thread(void *);
-int define_position(void);
+void define_position(void);
+int read_packet(void);
 int neighbour(int value, int target, int neighbour);
 void do_rotation(void);
 void display_version(void);
@@ -106,7 +107,7 @@ int main(int argc, char **argv)
 
 	DBusError err;
 	DBusConnection* conn;
-	int ret;
+	int ret=0;
 
 	while((option = getopt(argc,argv,options)) != -1)
 	{
@@ -199,6 +200,7 @@ int main(int argc, char **argv)
 		define_position();
 		if(current_pos != pos) do_rotation();
 	}
+	return(ret);
 }
 
 void display_version(void)
@@ -221,7 +223,8 @@ void display_help(void)
 
 void do_rotation(void)
 {
-	Rotation r_to, r;
+	Rotation r_to = NULL;
+	Rotation r = NULL;
 	XRRScreenConfiguration *config;
 	int screen = -1;
 	int current_size = 0;
@@ -295,7 +298,7 @@ void do_rotation(void)
 
 }
 
-int define_position(void)
+void define_position(void)
 {
 
 	/* Conclude all facts about current position */
