@@ -11,5 +11,4 @@ AM_LDFLAGS = @FRAMEWORKD_GLIB_LIBS@ -L /usr/local/openmoko/arm/arm-angstrom-linu
 bin_PROGRAMS=omnewrotate
 
 omnewrotate_SOURCES = \
-	omnewrotate.c \
-	
+	omnewrotate.c
