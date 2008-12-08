@@ -1,6 +1,7 @@
 INTAINERCLEANFILES = Makefile.in
 
 AM_CPPFLAGS = -DPKGDATADIR=\"$(pkgdatadir)\" \
+		-pthread \
                 $(XRANDR_CFLAGS) \
                 $(FRAMEWORKD_GLIB_CFLAGS) \
                 -Wall
