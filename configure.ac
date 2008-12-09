@@ -1,5 +1,5 @@
 AC_PREREQ(2.53)
-AC_INIT(omnewrotate, 0.5.0, http://code.google.com/p/omnewrotate/)
+AC_INIT(omnewrotate, 0.5.1, http://code.google.com/p/omnewrotate/)
 AM_INIT_AUTOMAKE()
 AC_CONFIG_SRCDIR(src/)
 AM_CONFIG_HEADER(config.h)
@@ -27,6 +27,8 @@ BINDIR=`eval echo $bindir`
 AC_SUBST([BINDIR])
 DATADIR=`eval echo $datadir`
 AC_SUBST([DATADIR])
+
+AC_SUBST([VERSION])
 
 dnl ==============================================
 dnl DBUS

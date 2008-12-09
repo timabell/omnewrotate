@@ -19,6 +19,8 @@
  *
  */
 
+#include <config.h>
+
 #include <signal.h>
 #include <stdio.h>
 #include <string.h>
@@ -49,8 +51,6 @@ struct input_event {
 	__s32 value;
 };
 */
-
-#define VERSION "0.5.0"
 
 #define UP 0
 #define RIGHT 1

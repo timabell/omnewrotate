@@ -1,6 +1,7 @@
 NTAINERCLEANFILES = Makefile.in
 
 AM_CPPFLAGS = -DPKGDATADIR=\"$(pkgdatadir)\" \
+		-I ../ \
                 @PTHREAD_CFLAGS@ \
                 @XRANDR_CFLAGS@ \
                 @FRAMEWORKD_GLIB_CFLAGS@ \
