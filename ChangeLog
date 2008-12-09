@@ -1,3 +1,8 @@
+2008-12-09 - 0.5.1 - Automagically lazy
+	* same as 0.5.0 plus auto tools magic
+	* desktop icon
+	* places a starter script
+
 2008-11-19 - 0.5.0 - Lazy edition
 	* uses a second thread for reading the accellerometer packets
 	* drops Fabian's changes (not that they weren't good, just not

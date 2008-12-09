@@ -1,3 +1,4 @@
 TODO
 	* don't rotate when screen is locked or dimmed
 	* fix brightness effects when whoever locks the brightness file (frameworkd?) is running 
+	* support suspend (right now, if you suspend you loose omnewrotate and need to start it again)

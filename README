@@ -11,8 +11,5 @@ Description: Inspired upon Chris Ball <cjb@laptop.org>'s previous
 # How to make it run #
 ######################
 
-While there isn't nothing else, do the following from SSH access:
- 
-    echo '/home/root/rotate&' > /etc/X11/Xsession.d/89rotate
-    chmod a+rx /etc/X11/Xsession.d/89rotate
-    /etc/init.d/xserver-nodm restart
+1. Just start your phone
+2. If it dies for some reason (like, currently, suspending), click on the nifty icon
