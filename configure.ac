@@ -28,6 +28,9 @@ AC_SUBST([BINDIR])
 DATADIR=`eval echo $datadir`
 AC_SUBST([DATADIR])
 
+XSESSIONDIR='${sysconfdir}/X11/Xsession.d'
+AC_SUBST([XSESSIONDIR])
+
 AC_SUBST([VERSION])
 
 dnl ==============================================
@@ -49,5 +52,6 @@ AC_OUTPUT([
 Makefile
 data/Makefile
 data/omnewrotate.desktop
+data/89omnewrotate
 src/Makefile
 ])
