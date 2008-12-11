@@ -31,6 +31,9 @@ AC_SUBST([DATADIR])
 XSESSIONDIR='${sysconfdir}/X11/Xsession.d'
 AC_SUBST([XSESSIONDIR])
 
+CONFIGDIR='${sysconfdir}/default'
+AC_SUBST([CONFIGDIR])
+
 AC_SUBST([VERSION])
 
 dnl ==============================================
@@ -52,6 +55,8 @@ AC_OUTPUT([
 Makefile
 data/Makefile
 data/omnewrotate.desktop
+data/11omnewrotate-suspend
+data/89omnewrotate-resume
 data/89omnewrotate
 src/Makefile
 ])
