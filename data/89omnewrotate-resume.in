@@ -1,7 +1,9 @@
 #!/bin/sh
 
-if[ -f @CONFIGDIR@/omnewrotate.conf ] ; then
+if [ -f @CONFIGDIR@/omnewrotate.conf ] ; then
 	. @CONFIGDIR@/omnewrotate.conf
 fi
+
+export DISPLAY=:0
 
 exec @BINDIR@/omnewrotate $OPTIONS &
