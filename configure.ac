@@ -34,6 +34,9 @@ AC_SUBST([XSESSIONDIR])
 CONFIGDIR='${sysconfdir}/default'
 AC_SUBST([CONFIGDIR])
 
+APMDIR='${sysconfdir}/apm'
+AC_SUBST([APMDIR])
+
 AC_SUBST([VERSION])
 
 dnl ==============================================
