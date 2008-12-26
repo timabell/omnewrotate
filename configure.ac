@@ -14,9 +14,16 @@ AC_PROG_LIBTOOL
 PKG_CHECK_MODULES(XRANDR, xrandr, [],
 		[AC_MSG_FAILURE([xrandr not found])]
 		)
-PKG_CHECK_MODULES(FRAMEWORKD_GLIB, libframeworkd-glib, [],
+
+AC_ARG_WITH([frameworkd], AS_HELP_STRING([--without-frameworkd], [Build without frameworkd-glib0 library (default: test)]))
+
+if test "x$with_frameworkd" != "xno"; then
+	PKG_CHECK_MODULES(FRAMEWORKD_GLIB, libframeworkd-glib, [],
 		[AC_MSG_FAILURE([libframeworkd-glib not found])]
 		)
+
+	AC_DEFINE([HAVE_LIBFRAMEWORKD_GLIB], [1], [Whether to use libframeworkd_glib])
+fi
 
 PTHREAD_CFLAGS="-pthread"
 PTHREAD_LIBS="-lpthread"

@@ -32,7 +32,12 @@
 #include <X11/Xlib.h>
 #include <X11/extensions/Xrandr.h>
 #include <pthread.h>
+
+#ifdef HAVE_LIBFRAMEWORD_GLIB
+
 #include <dbus/dbus.h>
+
+#endif
 
 void *packet_reading_thread(void *);
 void define_position(void);
@@ -79,7 +84,11 @@ static Window rootWindow;
 ushort debug = 0;
 ushort skip_zero = 1;
 ushort change_brightness = 0;
+#ifdef HAVE_LIBFRAMEWORD_GLIB
 ushort use_dbus = 1;
+#else
+ushort use_dbus = 0;
+#endif
 
 
 #define BIG_DIFFERENCE 400
@@ -105,8 +114,10 @@ int main(int argc, char **argv)
 	static char options[] = "bd0hv";
 	int option;
 
+#ifdef HAVE_LIBFRAMEWORD_GLIB
 	DBusError err;
 	DBusConnection* conn;
+#endif
 	int ret=0;
 
 	while((option = getopt(argc,argv,options)) != -1)
@@ -152,6 +163,7 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
+#ifdef HAVE_LIBFRAMEWORD_GLIB
 	dbus_error_init(&err);
 	conn = dbus_bus_get(DBUS_BUS_SESSION, &err);
 	if (dbus_error_is_set(&err))
@@ -160,6 +172,7 @@ int main(int argc, char **argv)
 		dbus_error_free(&err);
 	}
 	if (NULL == conn) use_dbus=0;
+#endif
 
 	if (change_brightness && !use_dbus) {
 		set_brightness_file = open(SET_BRIGHTNESS_PATH, O_RDWR);
