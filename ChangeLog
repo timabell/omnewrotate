@@ -1,3 +1,8 @@
+2008-12-26 - 0.5.3
+	* fix issue 4, for the time being frameworkd-glib isn't really used
+	* added a compile time option for building without frameworkd-glib to
+	  support distributions which don't use it.
+
 2008-12-09 - 0.5.2
 	* fix issues 1 and 2
 
