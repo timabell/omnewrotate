@@ -4,6 +4,4 @@ if [ -f @CONFIGDIR@/omnewrotate.conf ] ; then
 	. @CONFIGDIR@/omnewrotate.conf
 fi
 
-export DIPLAY=:0
-
 exec @BINDIR@/omnewrotate $OPTIONS &
