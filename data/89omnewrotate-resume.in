@@ -6,4 +6,6 @@ fi
 
 export DISPLAY=:0
 
-exec @BINDIR@/omnewrotate $OPTIONS &
+if test "$START" == "yes" ; then
+	exec @BINDIR@/omnewrotate $OPTIONS &
+fi

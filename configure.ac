@@ -35,13 +35,13 @@ AC_SUBST([BINDIR])
 DATADIR=`eval echo $datadir`
 AC_SUBST([DATADIR])
 
-XSESSIONDIR='${sysconfdir}/X11/Xsession.d'
+XSESSIONDIR="${sysconfdir}/X11/Xsession.d"
 AC_SUBST([XSESSIONDIR])
 
-CONFIGDIR='${sysconfdir}/default'
+CONFIGDIR="${sysconfdir}/default"
 AC_SUBST([CONFIGDIR])
 
-APMDIR='${sysconfdir}/apm'
+APMDIR="${sysconfdir}/apm"
 AC_SUBST([APMDIR])
 
 AC_SUBST([VERSION])
@@ -68,5 +68,6 @@ data/omnewrotate.desktop
 data/11omnewrotate-suspend
 data/89omnewrotate-resume
 data/89omnewrotate
+data/omnewrotate.conf
 src/Makefile
 ])

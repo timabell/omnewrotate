@@ -62,8 +62,6 @@ struct input_event {
 #define DOWN 2
 #define LEFT 3
 
-#define EVENT_PATH "/dev/input/event3"
-
 int x = 0;
 int y = 0;
 int z = 0;
@@ -111,8 +109,11 @@ int main(int argc, char **argv)
 	pthread_t p_thread[1];
 	int i;
 	int pos=0;
-	static char options[] = "bd0hv";
+	static char options[] = "bd0hva:g:s:";
 	int option;
+	char * accelerometer = (char*)NULL;
+	char * get_brightness_path = (char*)NULL;
+	char * set_brightness_path = (char*)NULL;
 
 #ifdef HAVE_LIBFRAMEWORD_GLIB
 	DBusError err;
@@ -124,6 +125,16 @@ int main(int argc, char **argv)
 	{
 		switch(option)
 		{
+			case '0':
+			{
+				skip_zero=0;
+				break;
+			}
+			case 'a':
+			{
+				accelerometer = strndup(optarg, 1024);
+				break;
+			}
 			case 'b':
 			{
 				change_brightness=1;
@@ -134,19 +145,24 @@ int main(int argc, char **argv)
 				debug=1;
 				break;
 			}
-			case '0':
+			case 'g':
 			{
-				skip_zero=0;
-				break;
-			}
-			case 'v':
-			{
-				display_version();
+				get_brightness_path = strndup(optarg, 1024);
 				exit(0);
 			}
 			case 'h':
 			{
 				display_help();
+				exit(0);
+			}
+			case 's':
+			{
+				set_brightness_path = strndup(optarg, 1024);
+				exit(0);
+			}
+			case 'v':
+			{
+				display_version();
 				exit(0);
 			}
 			default:
@@ -186,8 +202,9 @@ int main(int argc, char **argv)
 		}
 	}
 
+	if(accelerometer == NULL) event3 = open(EVENT_PATH, O_RDONLY);
+	else event3 = open(accelerometer, O_RDONLY);
 
-	event3 = open(EVENT_PATH, O_RDONLY);
 	if (event3 < 0)
 	{
 		fprintf(stderr, "Can't open '%s': %s\n", EVENT_PATH,
@@ -225,11 +242,14 @@ void display_help(void)
 {
 	display_version();
 	printf("\nUsage:\n"\
-		"	-h	Help (what you're reading right now)\n"
-		"	-v	Show version and license\n"
-		"	-d	Debug mode (extra yummy output)\n\n"
-		"	-b	Use brightness (dimming and back) effects\n"
 		"	-0	Don't skip packets if any coordinate is '0'\n"
+		"	-a	Accelerometer path, by default '" EVENT_PATH "'\n"
+		"	-b	Use brightness (dimming and back) effects\n"
+		"	-d	Debug mode (extra yummy output)\n"
+		"	-g	Get current brightness path, by default '" GET_BRIGHTNESS_PATH "'\n"
+		"	-h	Help (what you're reading right now)\n"
+		"	-s	Set current brightness path, by default '" SET_BRIGHTNESS_PATH "'\n"
+		"	-v	Show version and license\n"
 		"\n"
 		);
 }

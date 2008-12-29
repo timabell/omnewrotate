@@ -18,6 +18,10 @@ resumescriptdir = @APMDIR@/resume.d
 resumescript_in_files = 89omnewrotate-resume.in
 resumescript_DATA = $(resumescript_in_files:.in=)
 
+omconfdir = @CONFIGDIR@
+omconf_in_files = omnewrotate.conf.in
+omconf_DATA = $(omconf_in_files:.in=)
+
 install-data-hook: 89omnewrotate-resume
 	/bin/chmod 0755 $(DESTDIR)/@XSESSIONDIR@/89omnewrotate
 	/bin/chmod 0755 $(DESTDIR)@APMDIR@/resume.d/89omnewrotate-resume
