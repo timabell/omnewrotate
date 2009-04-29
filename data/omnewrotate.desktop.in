@@ -2,7 +2,7 @@
 Name=Rotate
 GenericName=OM NewRotate
 Comment=OpenMoko NewRotate swaps screen orientation according to it's physical orientation
-Exec=@BINDIR@/omnewrotate
+Exec=@BINDIR@/omnewrotate.sh
 Icon=@DATADIR@/pixmaps/omnewrotate.png
 Terminal=false
 Type=Application
