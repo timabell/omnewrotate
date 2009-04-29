@@ -76,6 +76,7 @@ int down = 0;
 
 int current_pos = -1;
 int event3 = -1;
+int read_sleep = 250000;
 
 static Display *display;
 static Window rootWindow;
@@ -155,6 +156,11 @@ int main(int argc, char **argv)
 				display_help();
 				exit(0);
 			}
+			case 'p':
+			{
+				read_sleep = 1000000;
+				break;
+			}
 			case 's':
 			{
 				set_brightness_path = strndup(optarg, 1024);
@@ -225,7 +231,7 @@ int main(int argc, char **argv)
 	if (debug) printf("Begin loop.\n");
 	while(1)
 	{
-		usleep(250000);
+		usleep(read_sleep);
 		pos=current_pos;
 		define_position();
 		if(current_pos != pos) do_rotation();
@@ -248,6 +254,7 @@ void display_help(void)
 		"	-d	Debug mode (extra yummy output)\n"
 		"	-g	Get current brightness path, by default '" GET_BRIGHTNESS_PATH "'\n"
 		"	-h	Help (what you're reading right now)\n"
+		"	-p	Powersaving features (like sleeping longer, etc...)\n"
 		"	-s	Set current brightness path, by default '" SET_BRIGHTNESS_PATH "'\n"
 		"	-v	Show version and license\n"
 		"\n"
