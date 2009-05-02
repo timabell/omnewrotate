@@ -2,6 +2,9 @@
 	* Allow disabling autostart through omnewrotate.conf
 	* Allow different paths for brightness and accelerometers
 
+2009-05-02 - ...
+	* Release 0.5.4 with fix for issues 5 and 6
+
 2008-12-26 - 0.5.3
 	* fix issue 4, for the time being frameworkd-glib isn't really used
 	* added a compile time option for building without frameworkd-glib to
