@@ -110,7 +110,7 @@ int main(int argc, char **argv)
 	pthread_t p_thread[1];
 	int i;
 	int pos=0;
-	static char options[] = "bd0hva:g:s:";
+	static char options[] = "pbd0hva:g:s:";
 	int option;
 	char * accelerometer = (char*)NULL;
 	char * get_brightness_path = (char*)NULL;

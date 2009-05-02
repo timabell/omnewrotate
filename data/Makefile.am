@@ -22,7 +22,12 @@ omconfdir = @CONFIGDIR@
 omconf_in_files = omnewrotate.conf.in
 omconf_DATA = $(omconf_in_files:.in=)
 
+toggledir = @BINDIR@
+toggle_in_files = omnewrotate.sh.in
+toggle_DATA = $(toggle_in_files:.in=)
+
 install-data-hook: 89omnewrotate-resume
 	/bin/chmod 0755 $(DESTDIR)/@XSESSIONDIR@/89omnewrotate
 	/bin/chmod 0755 $(DESTDIR)@APMDIR@/resume.d/89omnewrotate-resume
 	/bin/chmod 0755 $(DESTDIR)@APMDIR@/suspend.d/11omnewrotate-suspend
+	/bin/chmod 0755 $(DESTDIR)/@BINDIR@/omnewrotate.sh

@@ -68,6 +68,7 @@ data/omnewrotate.desktop
 data/11omnewrotate-suspend
 data/89omnewrotate-resume
 data/89omnewrotate
+data/omnewrotate.sh
 data/omnewrotate.conf
 src/Makefile
 ])
