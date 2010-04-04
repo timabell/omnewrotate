@@ -8,50 +8,50 @@ export DIPLAY=:0
 PIDFILE="/var/run/omnewrotate.pid"
 
 case "$1" in
-start)
-	echo -n starting omnewrotate...
-	/sbin/start-stop-daemon -S \
-		--make-pidfile  \
-		--pidfile $PIDFILE  \
-		--exec @BINDIR@/omnewrotate  \
-		--background  \
-		-- $OPTIONS > /dev/null
-	echo done
-;;
-stop)
-	echo -n stopping omnewrotate...
-	/sbin/start-stop-daemon -K \
-		--pidfile $PIDFILE > /dev/null
-	echo done
-;;
-restart)
-	$0 stop
-	$0 start
-;;
-switch)
-	/sbin/start-stop-daemon -K \
-                --exec @BINDIR@/omnewrotate  \
-	        --pidfile $PIDFILE  \
-		--test > /dev/null
-	if [ $? == 0 ]; then
+	start)
+		echo -n starting omnewrotate...
+		/sbin/start-stop-daemon -S \
+			--make-pidfile  \
+			--pidfile $PIDFILE  \
+			--exec @BINDIR@/omnewrotate  \
+			--background  \
+			-- $OPTIONS > /dev/null
+		echo done
+	;;
+	stop)
+		echo -n stopping omnewrotate...
+		/sbin/start-stop-daemon -K \
+			--pidfile $PIDFILE > /dev/null
+		echo done
+	;;
+	restart)
 		$0 stop
-	else
 		$0 start
-	fi
-;;
-status)
-        /sbin/start-stop-daemon -K \
-                --exec @BINDIR@/omnewrotate  \
-                --pidfile $PIDFILE  \
-                --test > /dev/null
-        if [ $? == 0 ]; then
-		echo running
-        else
-                echo stopped
-       fi      
-;;
-*)
-	echo "Usage: @SYSCONFDIR@/init.d/omnewrotate {start|stop|restart|switch|status}"
-	exit 1
-;;
+	;;
+	switch)
+		/sbin/start-stop-daemon -K \
+                	--exec @BINDIR@/omnewrotate  \
+	        	--pidfile $PIDFILE  \
+			--test > /dev/null
+		if [ $? == 0 ]; then
+			$0 stop
+		else
+			$0 start
+		fi
+	;;
+	status)
+        	/sbin/start-stop-daemon -K \
+                	--exec @BINDIR@/omnewrotate  \
+                	--pidfile $PIDFILE  \
+                	--test > /dev/null
+        	if [ $? == 0 ]; then
+			echo running
+        	else
+                	echo stopped
+       	fi      
+	;;
+	*)
+		echo "Usage: @SYSCONFDIR@/init.d/omnewrotate {start|stop|restart|switch|status}"
+		exit 1
+	;;
 esac
