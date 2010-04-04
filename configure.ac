@@ -44,6 +44,9 @@ AC_SUBST([CONFIGDIR])
 APMDIR="${sysconfdir}/apm"
 AC_SUBST([APMDIR])
 
+SYSCONFDIR="${sysconfdir}"
+AC_SUBST([SYSCONFDIR])
+
 AC_SUBST([VERSION])
 
 dnl ==============================================
@@ -68,6 +71,7 @@ data/omnewrotate.desktop
 data/11omnewrotate-suspend
 data/89omnewrotate-resume
 data/89omnewrotate
+data/omnewrotate
 data/omnewrotate.sh
 data/omnewrotate.conf
 src/Makefile

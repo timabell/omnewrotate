@@ -5,5 +5,5 @@ if [ -f @CONFIGDIR@/omnewrotate.conf ] ; then
 fi
 
 if test "$START" == "yes" ; then
-	exec @BINDIR@/omnewrotate $OPTIONS &
+	exec @SYSCONFDIR@/init.d/omnewrotate start
 fi

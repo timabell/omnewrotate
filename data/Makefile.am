@@ -10,6 +10,10 @@ x11scriptdir = @XSESSIONDIR@
 x11script_in_files = 89omnewrotate.in
 x11script_DATA = $(x11script_in_files:.in=)
 
+initscriptdir = ${sysconfdir}/init.d
+initscript_in_files = omnewrotate.in
+initscript_DATA = $(initscript_in_files:.in=)
+
 suspendscriptdir = @APMDIR@/suspend.d
 suspendscript_in_files = 11omnewrotate-suspend.in
 suspendscript_DATA = $(suspendscript_in_files:.in=)
