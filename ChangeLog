@@ -1,8 +1,10 @@
-200y-mm-dd - ...
+2010-04-04 - 0.5.5
 	* Allow disabling autostart through omnewrotate.conf
 	* Allow different paths for brightness and accelerometers
+	* Integrate Tim Abell's improvements to startup scripts
+	* Get rid of gnome-autogen (not really needed here)
 
-2009-05-02 - ...
+2009-05-02 - 0.5.4
 	* Release 0.5.4 with fix for issues 5 and 6
 
 2008-12-26 - 0.5.3
