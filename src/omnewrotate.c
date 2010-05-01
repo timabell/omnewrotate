@@ -352,22 +352,22 @@ void define_position(void)
 	else
 		face_up=0;
 
-	if(neighbour(x,-1000,300))
+	if(neighbour(x,-1000,100))
 		left=1;
 	else
 		left=0;
 
-	if(neighbour(x,1000,300))
+	if(neighbour(x,1000,100))
 		right=1;
 	else
 		right=0;
 
-	if(neighbour(y,1000,300))
+	if(neighbour(y,1000,100))
 		down=1;
 	else
 		down=0;
 
-	if(neighbour(y,-1000,300))
+	if(neighbour(y,-1000,100))
 		up=1;
 	else
 		up=0;
