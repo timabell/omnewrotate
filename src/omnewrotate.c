@@ -392,9 +392,17 @@ void define_position(void)
 	}
 }
 
-int neighbour(int value, int target, int neighbour)
+/**
+  * neighbour(): test proximity of one value to another based on a threshold.
+  * returns true if "value" is nearer to "target" than threshold "value"
+  * value: the varying value to test
+  * target: the number to test proximity of to
+  * threshold: the threshold for how close "value" has to be to "target" to succeed
+  * eg: for target=100 and threshold=10, values of 91 to 110 inclusive would return true
+  */
+int neighbour(int value, int target, int threshold)
 {
-    return (target - abs(neighbour) < value && value <= target + abs(neighbour));
+	return (value > (target - abs(threshold)) && (value <= (target + abs(threshold))));
 }
 
 void *packet_reading_thread(void *arg)
