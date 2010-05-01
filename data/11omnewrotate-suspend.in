@@ -1,3 +1,0 @@
-#!/bin/sh
-
-/usr/bin/killall -9 omnewrotate
