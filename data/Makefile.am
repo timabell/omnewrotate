@@ -35,3 +35,4 @@ install-data-hook: 89omnewrotate-resume
 	/bin/chmod 0755 $(DESTDIR)@APMDIR@/resume.d/89omnewrotate-resume
 	/bin/chmod 0755 $(DESTDIR)@APMDIR@/suspend.d/11omnewrotate-suspend
 	/bin/chmod 0755 $(DESTDIR)/@BINDIR@/omnewrotate.sh
+	/bin/chmod 0755 $(DESTDIR)/${sysconfdir}/init.d/omnewrotate

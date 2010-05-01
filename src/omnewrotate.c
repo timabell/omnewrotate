@@ -78,6 +78,7 @@ int current_pos = -1;
 int event3 = -1;
 int read_sleep = 250000;
 int accel_threshold = 50; //how close to 1000 in x/y/z accelerometer needs to read before rotating (command line option "-t")
+int kernel_version = 2629; // 2629 == 2.6.29 (default), 2632 = 2.6.32
 
 static Display *display;
 static Window rootWindow;
@@ -96,22 +97,94 @@ ushort use_dbus = 0;
 #define LONG_TIME 0
 
 #define EVENT_PATH "/dev/input/event3"
-#define GET_BRIGHTNESS_PATH "/sys/class/backlight/gta02-bl/actual_brightness"
-#define SET_BRIGHTNESS_PATH "/sys/class/backlight/gta02-bl/brightness"
+#define GET_BRIGHTNESS_PATH_2629 "/sys/class/backlight/gta02-bl/actual_brightness"
+#define SET_BRIGHTNESS_PATH_2629 "/sys/class/backlight/gta02-bl/brightness"
+#define GET_BRIGHTNESS_PATH_2632 "/sys/class/backlight/pcf50633-bl/actual_brightness"
+#define SET_BRIGHTNESS_PATH_2632 "/sys/class/backlight/pcf50633-bl/brightness"
 
 #define NUM_THREADS 1
 
 
 int set_brightness_file = -1;
 int get_brightness_file = -1;
+void set_linux_type(int kernel_version, char *set_brightness_path, char *get_brightness_path)
+{
+	struct stat buf;
 
+	switch(kernel_version)
+	{
+		case 0:	// unspecified guessing
+		{
+			if(! (set_brightness_path && get_brightness_path) )
+			{
+				fprintf(stderr, "With unspecified Linux version, you need to define set_brightness and get_brightness paths.\n");
+				exit(1);
+			}
+		}
+		case 2632:	// Linux 2.6.32
+		{
+			if(set_brightness_path)
+				free(set_brightness_path);
+			if(!get_brightness_path)
+				free(get_brightness_path);
+			if((stat(SET_BRIGHTNESS_PATH_2632, &buf) == 0 && stat(GET_BRIGHTNESS_PATH_2632, &buf) == 0))
+			{
+				set_brightness_path = SET_BRIGHTNESS_PATH_2632;
+				get_brightness_path = GET_BRIGHTNESS_PATH_2632;
+			}
+			else
+			{
+				if((stat(SET_BRIGHTNESS_PATH_2629, &buf) == 0 && stat(GET_BRIGHTNESS_PATH_2629, &buf) == 0))
+				{
+					fprintf(stderr, "Expected Linux 2.6.32 style but found Linux 2.6.29 style paths for brightness\n");
+					set_brightness_path = SET_BRIGHTNESS_PATH_2629;
+					get_brightness_path = GET_BRIGHTNESS_PATH_2629;
+				}
+				else
+				{
+					fprintf(stderr, "Unsupported Linux version\n");
+					exit(2);
+				}
+			}
+			break;
+		}
+		default:	// Linux 2.6.29
+		{
+			if(set_brightness_path)
+				free(set_brightness_path);
+			if(get_brightness_path)
+				free(get_brightness_path);
+			if((stat(SET_BRIGHTNESS_PATH_2629, &buf) == 0 && stat(GET_BRIGHTNESS_PATH_2629, &buf) == 0))
+			{
+				set_brightness_path = SET_BRIGHTNESS_PATH_2629;
+				get_brightness_path = GET_BRIGHTNESS_PATH_2629;
+			}
+			else
+			{
+				if((stat(SET_BRIGHTNESS_PATH_2632, &buf) == 0 && stat(GET_BRIGHTNESS_PATH_2632, &buf) == 0))
+				{
+					fprintf(stderr, "Expected Linux 2.6.29 style but found Linux 2.6.32 style paths for brightness\n");
+					set_brightness_path = SET_BRIGHTNESS_PATH_2632;
+					get_brightness_path = GET_BRIGHTNESS_PATH_2632;
+				}
+				else
+				{
+					fprintf(stderr, "Unsupported Linux version\n");
+					exit(2);
+				}
+			}
+			break;
+		}
+	}
+}
 
 int main(int argc, char **argv)
 {
+	struct stat buf;
 	pthread_t p_thread[1];
 	int i;
 	int pos=0;
-	static char options[] = "pbd0hva:g:s:t:";
+	static char options[] = "pbd0hva:g:s:t:k:";
 	int option;
 	char * accelerometer = (char*)NULL;
 	char * get_brightness_path = (char*)NULL;
@@ -135,6 +208,12 @@ int main(int argc, char **argv)
 			case 'a':
 			{
 				accelerometer = strndup(optarg, 1024);
+				if(stat(accelerometer, &buf) < 0)
+				{
+					fprintf(stderr, "Problem accessing accelerometer at %s: %s\n", accelerometer, strerror(errno));
+					free(accelerometer);
+					exit(1);
+				}
 				break;
 			}
 			case 'b':
@@ -150,7 +229,12 @@ int main(int argc, char **argv)
 			case 'g':
 			{
 				get_brightness_path = strndup(optarg, 1024);
-				exit(0);
+				if(stat(get_brightness_path, &buf) < 0)
+				{
+					free(get_brightness_path);
+					get_brightness_path=NULL;
+				}
+				break;
 			}
 			case 'h':
 			{
@@ -165,7 +249,17 @@ int main(int argc, char **argv)
 			case 's':
 			{
 				set_brightness_path = strndup(optarg, 1024);
-				exit(0);
+				if(stat(set_brightness_path, &buf) < 0)
+				{
+					free(set_brightness_path);
+					set_brightness_path=NULL;
+				}
+				break;
+			}
+			case 'k':
+			{
+				kernel_version = atoi(optarg);
+				break;
 			}
 			case 't':
 			{
@@ -183,6 +277,8 @@ int main(int argc, char **argv)
 			}
 		}
 	}
+
+	set_linux_type(kernel_version, set_brightness_path, set_brightness_path);
 
 	display = XOpenDisplay(":0");
 	if (display == NULL)
@@ -203,12 +299,12 @@ int main(int argc, char **argv)
 #endif
 
 	if (change_brightness && !use_dbus) {
-		set_brightness_file = open(SET_BRIGHTNESS_PATH, O_WRONLY);
-		get_brightness_file = open(GET_BRIGHTNESS_PATH, O_WRONLY);
+		set_brightness_file = open(set_brightness_path, O_WRONLY);
+		get_brightness_file = open(get_brightness_path, O_WRONLY);
 
 		if (set_brightness_file < 0 || get_brightness_file < 0)
 		{
-			fprintf(stderr, "Can't open '%s': %s\n", SET_BRIGHTNESS_PATH, strerror(errno));
+			fprintf(stderr, "Can't open '%s': %s\n", set_brightness_path, strerror(errno));
 			fprintf(stderr, "No brightness control enabled\n");
 			change_brightness = 0;
 		}
@@ -227,7 +323,7 @@ int main(int argc, char **argv)
 	/* Create a the packet reading thread */
 	for(i = 0; i < NUM_THREADS; i++)
 	{
-		if(pthread_create(&p_thread[i], NULL, packet_reading_thread, (void *)i) != 0)
+		if(pthread_create(&p_thread[i], NULL, packet_reading_thread, (void *)(long)i) != 0)
 		{
 			fprintf(stderr, "Error creating the packet reading thread");
 			exit(1);
@@ -258,12 +354,15 @@ void display_help(void)
 		"	-a	Accelerometer path, by default '" EVENT_PATH "'\n"
 		"	-b	Use brightness (dimming and back) effects\n"
 		"	-d	Debug mode (extra yummy output)\n"
+		"	-k	Set the kernel version. Use 2629 (default, Linux 2.6.29)\n"
+		"       or 2632 to change to Linux 2.6.32 or greater\n"
+		"       use 0 to be able to arbitrarily change brightness paths\n"
 		"	-g	Get current brightness path,\n"
-		"		by default '" GET_BRIGHTNESS_PATH "'\n"
+		"		by default '" GET_BRIGHTNESS_PATH_2629 "'\n"
 		"	-h	Help (what you're reading right now)\n"
 		"	-p	Powersaving features (like sleeping longer, etc...)\n"
 		"	-s	Set current brightness path,\n"
-		"		by default '" SET_BRIGHTNESS_PATH "'\n"
+		"		by default '" SET_BRIGHTNESS_PATH_2629 "'\n"
 		"	-t	Threshold for rotating. Default +/-50 (approx 20deg) \n"
 		"		against target of 1000. 300 gives approx 45deg\n"
 		"	-v	Show version and license\n"
@@ -273,8 +372,8 @@ void display_help(void)
 
 void do_rotation(void)
 {
-	Rotation r_to = NULL;
-	Rotation r = NULL;
+	Rotation r_to = RR_Rotate_0;
+	Rotation r = RR_Rotate_0;
 	XRRScreenConfiguration *config;
 	int screen = -1;
 	int current_size = 0;
@@ -283,9 +382,22 @@ void do_rotation(void)
 	rootWindow = RootWindow(display, screen);
 	XRRRotations(display, screen, &r);
 
-	char current_brightness[4] = "255\n";
+	char current_brightness[4];
 	char brightness_off[2] = "0\n";
 
+	switch(kernel_version)
+	{
+		case 2632:
+		{
+			snprintf(current_brightness, 4, "63\n");
+			break;
+		}
+		default:
+		{
+			snprintf(current_brightness, 5, "255\n");
+			break;
+		}
+	}
 
 
 	switch(current_pos)
