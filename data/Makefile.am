@@ -16,3 +16,4 @@ toggle_DATA = $(toggle_in_files:.in=)
 
 install-data-hook: omnewrotate.sh
 	/bin/chmod 0755 $(DESTDIR)/@BINDIR@/omnewrotate.sh
+	/bin/chmod 0755 $(DESTDIR)/${sysconfdir}/init.d/omnewrotate
