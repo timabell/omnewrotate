@@ -107,6 +107,8 @@ ushort use_dbus = 0;
 
 int set_brightness_file = -1;
 int get_brightness_file = -1;
+char current_brightness[4];
+
 void set_linux_type(int kernel_version, char *set_brightness_path, char *get_brightness_path)
 {
 	struct stat buf;
@@ -131,6 +133,7 @@ void set_linux_type(int kernel_version, char *set_brightness_path, char *get_bri
 			{
 				set_brightness_path = SET_BRIGHTNESS_PATH_2632;
 				get_brightness_path = GET_BRIGHTNESS_PATH_2632;
+				snprintf(current_brightness, 5, "63\n");
 			}
 			else
 			{
@@ -139,6 +142,7 @@ void set_linux_type(int kernel_version, char *set_brightness_path, char *get_bri
 					fprintf(stderr, "Expected Linux 2.6.32 style but found Linux 2.6.29 style paths for brightness\n");
 					set_brightness_path = SET_BRIGHTNESS_PATH_2629;
 					get_brightness_path = GET_BRIGHTNESS_PATH_2629;
+					snprintf(current_brightness, 5, "255\n");
 				}
 				else
 				{
@@ -158,6 +162,7 @@ void set_linux_type(int kernel_version, char *set_brightness_path, char *get_bri
 			{
 				set_brightness_path = SET_BRIGHTNESS_PATH_2629;
 				get_brightness_path = GET_BRIGHTNESS_PATH_2629;
+				snprintf(current_brightness, 5, "255\n");
 			}
 			else
 			{
@@ -166,6 +171,7 @@ void set_linux_type(int kernel_version, char *set_brightness_path, char *get_bri
 					fprintf(stderr, "Expected Linux 2.6.29 style but found Linux 2.6.32 style paths for brightness\n");
 					set_brightness_path = SET_BRIGHTNESS_PATH_2632;
 					get_brightness_path = GET_BRIGHTNESS_PATH_2632;
+					snprintf(current_brightness, 4, "63\n");
 				}
 				else
 				{
@@ -382,23 +388,7 @@ void do_rotation(void)
 	rootWindow = RootWindow(display, screen);
 	XRRRotations(display, screen, &r);
 
-	char current_brightness[4];
 	char brightness_off[2] = "0\n";
-
-	switch(kernel_version)
-	{
-		case 2632:
-		{
-			snprintf(current_brightness, 4, "63\n");
-			break;
-		}
-		default:
-		{
-			snprintf(current_brightness, 5, "255\n");
-			break;
-		}
-	}
-
 
 	switch(current_pos)
 	{
