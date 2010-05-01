@@ -77,7 +77,7 @@ int down = 0;
 int current_pos = -1;
 int event3 = -1;
 int read_sleep = 250000;
-int accel_threshold = 300; //how close to 1000 in x/y/z accelerometer needs to read before rotating (command line option "-t")
+int accel_threshold = 50; //how close to 1000 in x/y/z accelerometer needs to read before rotating (command line option "-t")
 
 static Display *display;
 static Window rootWindow;
@@ -258,11 +258,14 @@ void display_help(void)
 		"	-a	Accelerometer path, by default '" EVENT_PATH "'\n"
 		"	-b	Use brightness (dimming and back) effects\n"
 		"	-d	Debug mode (extra yummy output)\n"
-		"	-g	Get current brightness path, by default '" GET_BRIGHTNESS_PATH "'\n"
+		"	-g	Get current brightness path,\n"
+		"		by default '" GET_BRIGHTNESS_PATH "'\n"
 		"	-h	Help (what you're reading right now)\n"
 		"	-p	Powersaving features (like sleeping longer, etc...)\n"
-		"	-s	Set current brightness path, by default '" SET_BRIGHTNESS_PATH "'\n"
-		"	-t	Threshold for rotating, default +/-300 (approx 45deg) against target of 1000\n"
+		"	-s	Set current brightness path,\n"
+		"		by default '" SET_BRIGHTNESS_PATH "'\n"
+		"	-t	Threshold for rotating. Default +/-50 (approx 20deg) \n"
+		"		against target of 1000. 300 gives approx 45deg\n"
 		"	-v	Show version and license\n"
 		"\n"
 		);
