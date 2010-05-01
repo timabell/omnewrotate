@@ -1,3 +1,8 @@
+2010-05-01 - 0.5.8
+	* Integrate Tim Abell's improvements to rotation sensitivity
+	* Be smarter about the brightness paths, which change in 2.6.32
+	* A few fixes here and there.
+
 2010-04-04 - 0.5.7
 	* Proper release.
 

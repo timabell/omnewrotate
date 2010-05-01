@@ -1,5 +1,5 @@
 AC_PREREQ(2.53)
-AC_INIT(omnewrotate, 0.5.7, http://code.google.com/p/omnewrotate/)
+AC_INIT(omnewrotate, 0.5.8, http://code.google.com/p/omnewrotate/)
 AM_INIT_AUTOMAKE()
 AC_CONFIG_SRCDIR(src/)
 AM_CONFIG_HEADER(config.h)
