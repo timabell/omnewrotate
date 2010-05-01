@@ -77,6 +77,7 @@ int down = 0;
 int current_pos = -1;
 int event3 = -1;
 int read_sleep = 250000;
+int accel_threshold = 300; //how close to 1000 in x/y/z accelerometer needs to read before rotating (command line option "-t")
 
 static Display *display;
 static Window rootWindow;
@@ -110,7 +111,7 @@ int main(int argc, char **argv)
 	pthread_t p_thread[1];
 	int i;
 	int pos=0;
-	static char options[] = "pbd0hva:g:s:";
+	static char options[] = "pbd0hva:g:s:t:";
 	int option;
 	char * accelerometer = (char*)NULL;
 	char * get_brightness_path = (char*)NULL;
@@ -165,6 +166,11 @@ int main(int argc, char **argv)
 			{
 				set_brightness_path = strndup(optarg, 1024);
 				exit(0);
+			}
+			case 't':
+			{
+				accel_threshold = atoi(optarg);
+				break;
 			}
 			case 'v':
 			{
@@ -256,6 +262,7 @@ void display_help(void)
 		"	-h	Help (what you're reading right now)\n"
 		"	-p	Powersaving features (like sleeping longer, etc...)\n"
 		"	-s	Set current brightness path, by default '" SET_BRIGHTNESS_PATH "'\n"
+		"	-t	Threshold for rotating, default +/-300 (approx 45deg) against target of 1000\n"
 		"	-v	Show version and license\n"
 		"\n"
 		);
@@ -352,22 +359,22 @@ void define_position(void)
 	else
 		face_up=0;
 
-	if(neighbour(x,-1000,100))
+	if(neighbour(x,-1000,accel_threshold))
 		left=1;
 	else
 		left=0;
 
-	if(neighbour(x,1000,100))
+	if(neighbour(x,1000,accel_threshold))
 		right=1;
 	else
 		right=0;
 
-	if(neighbour(y,1000,100))
+	if(neighbour(y,1000,accel_threshold))
 		down=1;
 	else
 		down=0;
 
-	if(neighbour(y,-1000,100))
+	if(neighbour(y,-1000,accel_threshold))
 		up=1;
 	else
 		up=0;
