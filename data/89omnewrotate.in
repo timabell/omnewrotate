@@ -1,9 +1,0 @@
-#!/bin/sh
-
-if [ -f @CONFIGDIR@/omnewrotate.conf ] ; then
-	. @CONFIGDIR@/omnewrotate.conf
-fi
-
-if test "$START" == "yes" ; then
-	exec @SYSCONFDIR@/init.d/omnewrotate start
-fi
